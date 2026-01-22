@@ -1,0 +1,4 @@
+robot1:
+  namespace: ''
+  device_path: ''
+  operator_position_front: true
