@@ -104,7 +104,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "robot_config_file",
-                default_value="example_fr3_config.yaml",
+                default_value="fr3_duo_config.yaml",
                 description="Name of the robot configuration file to load (relative to config/ in franka_arm_controllers)",
             ),
             OpaqueFunction(function=generate_robot_nodes),

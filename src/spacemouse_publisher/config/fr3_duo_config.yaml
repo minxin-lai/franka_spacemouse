@@ -1,0 +1,8 @@
+LEFT:
+  namespace: left
+  device_path: /dev/hidraw4
+  operator_position_front: true
+RIGHT:
+  namespace: right
+  device_path: /dev/hidraw5
+  operator_position_front: true

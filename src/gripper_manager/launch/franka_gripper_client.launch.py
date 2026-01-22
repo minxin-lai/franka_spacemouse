@@ -49,7 +49,7 @@ def generate_launch_description():
         [
             DeclareLaunchArgument(
                 "config_file",
-                default_value="example_fr3_config.yaml",
+                default_value="fr3_duo_config.yaml",
                 description="Name of the gripper_manager configuration file to load",
             ),
             OpaqueFunction(function=generate_nodes),
