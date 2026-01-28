@@ -26,6 +26,7 @@ setup(
     entry_points={
         "console_scripts": [
             "pyspacemouse_publisher = spacemouse_publisher.pyspacemouse_publisher:main",
+            "spacemouse_twist_mux = spacemouse_publisher.twist_mux:main",
         ],
     },
 )

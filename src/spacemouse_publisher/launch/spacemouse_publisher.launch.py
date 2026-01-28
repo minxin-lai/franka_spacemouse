@@ -16,24 +16,43 @@ def load_yaml(file_path):
 
 def generate_nodes(context):
     config_file_name = LaunchConfiguration("config_file").perform(context)
+    use_mux = LaunchConfiguration("use_mux").perform(context).lower() == "true"
     package_config_dir = FindPackageShare("spacemouse_publisher").perform(context)
     config_file = os.path.join(package_config_dir, "config", config_file_name)
     configs = load_yaml(config_file)
     nodes = []
     for item_name, config in configs.items():
+        namespace = str(config["namespace"])
+        twist_topic = "franka_controller/target_cartesian_velocity_percent"
+        mux_input_topic = "spacemouse_mux/input_spacemouse"
+        if use_mux:
+            twist_topic = mux_input_topic
+
         nodes.append(
             Node(
                 package="spacemouse_publisher",
                 executable="pyspacemouse_publisher",
                 name="spacemouse_publisher",
-                namespace=str(config["namespace"]),
+                namespace=namespace,
                 output="screen",
                 parameters=[
                     {"operator_position_front": config["operator_position_front"]},
                     {"device_path": str(config["device_path"])},
+                    {"twist_topic": twist_topic},
                 ],
             )
         )
+
+        if use_mux:
+            nodes.append(
+                Node(
+                    package="spacemouse_publisher",
+                    executable="spacemouse_twist_mux",
+                    name="spacemouse_twist_mux",
+                    namespace=namespace,
+                    output="screen",
+                )
+            )
 
     return nodes
 
@@ -45,6 +64,11 @@ def generate_launch_description():
                 "config_file",
                 default_value="fr3_duo_config.yaml",
                 description="Name of the spacemouse configuration file to load",
+            ),
+            DeclareLaunchArgument(
+                "use_mux",
+                default_value="true",
+                description="Use a mux between SpaceMouse and home commands",
             ),
             OpaqueFunction(function=generate_nodes),
         ]

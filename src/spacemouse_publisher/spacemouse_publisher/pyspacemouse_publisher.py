@@ -28,9 +28,14 @@ class SpaceMousePublisher(Node):
         self.declare_parameter("device_path", "")
         self._device_path = self.get_parameter("device_path").get_parameter_value().string_value
 
-        self._twist_publisher = self.create_publisher(
-            Twist, "franka_controller/target_cartesian_velocity_percent", 10
+        self.declare_parameter(
+            "twist_topic", "franka_controller/target_cartesian_velocity_percent"
         )
+        self._twist_topic = (
+            self.get_parameter("twist_topic").get_parameter_value().string_value
+        )
+
+        self._twist_publisher = self.create_publisher(Twist, self._twist_topic, 10)
         self._gripper_width_publisher = self.create_publisher(
             Float32, "gripper_client/target_gripper_width_percent", 10
         )
