@@ -1,0 +1,5 @@
+# SpaceMouse Persistent Symlinks
+# Left SpaceMouse (Port 3-6.1)
+SUBSYSTEM=="hidraw", KERNELS=="3-6.1:1.0", SYMLINK+="spacemouse_left"
+# Right SpaceMouse (Port 3-6.4)
+SUBSYSTEM=="hidraw", KERNELS=="3-6.4:1.0", SYMLINK+="spacemouse_right"

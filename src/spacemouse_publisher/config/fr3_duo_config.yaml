@@ -1,8 +1,10 @@
 LEFT:
   namespace: left
-  device_path: /dev/hidraw4
+  # NOTE: /dev/spacemouse_left is a udev symlink.
+  device_path: /dev/spacemouse_left
   operator_position_front: true
 RIGHT:
   namespace: right
-  device_path: /dev/hidraw5
+  # NOTE: /dev/spacemouse_right is a udev symlink.
+  device_path: /dev/spacemouse_right
   operator_position_front: true
