@@ -15,12 +15,14 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <mutex>
 #include <string>
 
 #include <controller_interface/controller_interface.hpp>
 #include <franka_arm_controllers/robot_utils.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
 #include "franka_semantic_components/franka_cartesian_pose_interface.hpp"
 #include "franka_semantic_components/franka_robot_model.hpp"
 
@@ -122,5 +124,13 @@ class JointImpedanceIKController : public controller_interface::ControllerInterf
   Eigen::Vector3d desired_linear_position_update_{0.0, 0.0, 0.0};
   Eigen::Vector3d desired_angular_position_update_{0.0, 0.0, 0.0};
   Eigen::Quaterniond desired_angular_position_update_quaternion_{1.0, 0.0, 0.0, 0.0};
+
+  // Optional joint target
+  rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr joint_target_sub_;
+  std::mutex joint_target_mutex_;
+  std::vector<double> joint_target_positions_;
+  rclcpp::Time last_joint_target_time_{0, 0, RCL_ROS_TIME};
+  bool joint_target_active_{false};
+  double joint_target_timeout_s_{0.5};
 };
 }  // namespace franka_arm_controllers

@@ -35,6 +35,16 @@ class SpaceMousePublisher(Node):
             self.get_parameter("twist_topic").get_parameter_value().string_value
         )
 
+        self.declare_parameter("linear_scale", 1.0)
+        self._linear_scale = (
+            self.get_parameter("linear_scale").get_parameter_value().double_value
+        )
+
+        self.declare_parameter("angular_scale", 1.0)
+        self._angular_scale = (
+            self.get_parameter("angular_scale").get_parameter_value().double_value
+        )
+
         self._twist_publisher = self.create_publisher(Twist, self._twist_topic, 10)
         self._gripper_width_publisher = self.create_publisher(
             Float32, "gripper_client/target_gripper_width_percent", 10
@@ -56,12 +66,12 @@ class SpaceMousePublisher(Node):
         state = pyspacemouse.read()
 
         twist_msg = Twist()
-        twist_msg.linear.x = -float(state.y)
-        twist_msg.linear.y = float(state.x)
-        twist_msg.linear.z = float(state.z)
-        twist_msg.angular.x = -float(state.roll)
-        twist_msg.angular.y = -float(state.pitch)
-        twist_msg.angular.z = -float(state.yaw)
+        twist_msg.linear.x = -float(state.y) * self._linear_scale
+        twist_msg.linear.y = float(state.x) * self._linear_scale
+        twist_msg.linear.z = float(state.z) * self._linear_scale
+        twist_msg.angular.x = -float(state.roll) * self._angular_scale
+        twist_msg.angular.y = -float(state.pitch) * self._angular_scale
+        twist_msg.angular.z = -float(state.yaw) * self._angular_scale
 
         if not self._operator_position_front:
             twist_msg.linear.x *= -1

@@ -17,6 +17,9 @@
 
 #include <chrono>
 #include <string>
+#include <mutex>
+
+#include <std_msgs/msg/float64_multi_array.hpp>
 
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -92,10 +95,26 @@ controller_interface::return_type JointImpedanceIKController::update(
   update_joint_states_();
   std::tie(orientation_, position_) = franka_cartesian_pose_->getCurrentOrientationAndTranslation();
 
-  auto new_position = position_ + desired_linear_position_update_;
-  auto new_orientation = orientation_ * desired_angular_position_update_quaternion_;
+  bool use_joint_target = false;
+  std::vector<double> joint_target_copy;
+  {
+    std::lock_guard<std::mutex> lock(joint_target_mutex_);
+    if (joint_target_active_) {
+      const auto now = get_node()->now();
+      if ((now - last_joint_target_time_).seconds() <= joint_target_timeout_s_) {
+        joint_target_copy = joint_target_positions_;
+        use_joint_target = (joint_target_copy.size() == static_cast<size_t>(num_joints_));
+      }
+    }
+  }
 
-  solve_ik_(new_position, new_orientation);
+  if (use_joint_target) {
+    joint_positions_desired_ = joint_target_copy;
+  } else {
+    auto new_position = position_ + desired_linear_position_update_;
+    auto new_orientation = orientation_ * desired_angular_position_update_quaternion_;
+    solve_ik_(new_position, new_orientation);
+  }
 
   if (joint_positions_desired_.empty()) {
     return controller_interface::return_type::OK;
@@ -119,6 +138,9 @@ CallbackReturn JointImpedanceIKController::on_init() {
   franka_cartesian_pose_ =
       std::make_unique<franka_semantic_components::FrankaCartesianPoseInterface>(
           franka_semantic_components::FrankaCartesianPoseInterface(k_elbow_activated_));
+  get_node()->declare_parameter<std::string>(
+      "target_joint_positions_topic", "franka_controller/target_joint_positions");
+  get_node()->declare_parameter<double>("joint_target_timeout_s", 0.5);
 
   return CallbackReturn::SUCCESS;
 }
@@ -210,6 +232,25 @@ CallbackReturn JointImpedanceIKController::on_configure(
 
   RCLCPP_INFO(get_node()->get_logger(),
               "Subscribed to franka_controller/target_cartesian_velocity_percent.");
+
+  const auto joint_topic =
+      get_node()->get_parameter("target_joint_positions_topic").as_string();
+  joint_target_timeout_s_ = get_node()->get_parameter("joint_target_timeout_s").as_double();
+  joint_target_sub_ = get_node()->create_subscription<std_msgs::msg::Float64MultiArray>(
+      joint_topic, 10,
+      [this](const std_msgs::msg::Float64MultiArray::SharedPtr msg) {
+        if (msg->data.size() != static_cast<size_t>(num_joints_)) {
+          RCLCPP_WARN(get_node()->get_logger(),
+                      "Joint target must have %d elements, got %zu",
+                      num_joints_, msg->data.size());
+          return;
+        }
+        std::lock_guard<std::mutex> lock(joint_target_mutex_);
+        joint_target_positions_ = msg->data;
+        last_joint_target_time_ = get_node()->now();
+        joint_target_active_ = true;
+      });
+  RCLCPP_INFO(get_node()->get_logger(), "Subscribed to %s for joint targets.", joint_topic.c_str());
 
   if (!model_.initString(robot_description_)) {
     RCLCPP_FATAL(get_node()->get_logger(), "Failed to parse processed URDF");
